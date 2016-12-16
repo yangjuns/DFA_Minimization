@@ -1,5 +1,5 @@
-aaa: hash.c hash.h
-	@gcc hash.c hash.h -o hash
+meet: hash.c hash.h meet.c
+	@gcc meet.c hash.c hash.h -o meet
 
 clean:
-	@rm hash
+	@rm meet

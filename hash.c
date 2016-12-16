@@ -137,14 +137,3 @@ void ht_free(hashtable_t *hashtable){
     free(hashtable);
   }
 }
-
-int main(int argc, char **argv) {
-	hashtable_t *hashtable = ht_create(65536);
-	ht_set(hashtable, 1,2,3);
-	printf("%d\n", ht_get(hashtable, 1,2));
-  printf("%d\n", ht_get(hashtable, 1,3));
-  ht_set(hashtable, 1,2,5);
-  printf("%d\n", ht_get(hashtable, 1,2));
-  ht_free(hashtable);
-	return 0;
-}
