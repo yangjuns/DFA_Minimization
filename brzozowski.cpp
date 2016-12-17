@@ -44,11 +44,6 @@ bool set_intersect_empty(set<int> &A, set<int> &B){
   return (intersect.size() == 0);
 }
 
-// int get_set_index(set<set<int> > &QQ, set<int> &target){
-//   auto found = find(QQ.begin(), QQ.end(), target);
-//   return found - QQ.begin() + 1;
-// }
-
 bool q_contains(vector<set<int>> &QQ, set<int> &target){
   auto found = find(QQ.begin(), QQ.end(), target);
   return found != QQ.end();
@@ -56,7 +51,6 @@ bool q_contains(vector<set<int>> &QQ, set<int> &target){
 
 int get_set_state(set<int> &s){
   auto found = set2int.find(s);
-  //printf("the set_ state is %d\n", found->second);
   return found->second;
 }
 
@@ -82,8 +76,6 @@ NFA *compute_rev(DFA* A){
     }
   }
   revA->transitions = trans;
-  //print_NFA_transition(revA);
-  //print_set(revA->set)
   return revA;
 }
 
@@ -112,15 +104,12 @@ DFA *determinize(NFA *A){
     finals.insert(1);
   }
   while(!active.empty()){
-    //printf("set2int size: %d\n", set2int.size());
     set<int> P = active.front();
     active.pop();
     for(int i=0; i<A->alpha_size; i++){
       vector<vector<int>> f = A->transitions[i];
       set<int> R = compute_tau(P, f);
-      //print_set(R);
       if(!q_contains(QQ, R)){
-        //printf("not in \n");
         QQ.push_back(R);
         set2int.insert(pair<set<int>,int>(R, count));
         count++;
@@ -142,8 +131,6 @@ DFA *determinize(NFA *A){
 
   /* translate transitions */
   vector<vector<int>> trans(detA->alpha_size, vector<int>(detA->size, 0));
-  /*print table content */
-
   for(int k =0; k < table.size(); k++){
     int p = get<0>(table[k]);
     int q = get<1>(table[k]);
@@ -151,25 +138,20 @@ DFA *determinize(NFA *A){
     trans[i-1][p-1] = q;
   }
   detA->transitions = trans;
-
   return detA;
-
 }
 
 DFA *Brzozowski(DFA * A){
   set2int.clear();
   /* compute NFA rev(A)*/
   NFA * rev_A = compute_rev(A);
-  //print_NFA_transition(rev_A);
 
   /* Rabin-Scott Determinization */
   DFA * det_RV = determinize(rev_A);
   set2int.clear();
-  //printf("%d, ,,,,", set2int.size());
 
   /* twice in a row*/
   NFA * rev_A2 = compute_rev(det_RV);
-  //print_NFA_transition(rev_A2);
   DFA* result = determinize(rev_A2);
   return result;
 }

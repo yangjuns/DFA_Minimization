@@ -56,7 +56,7 @@ void compare_runtime(int runs, int size, int alpha_size){
     i++;
   }
   printf("Moores AVG Run Time: %d\n", m_sum/runs);
-  printf("Brzozowski  AVG Run Time: %d\n", b_sum/runs);
+  printf("Brzozowski AVG Run Time: %d\n", b_sum/runs);
 }
 
 int main(){
@@ -97,5 +97,5 @@ int main(){
 
   /* Experiments */
   printf("Experiments with lots of input ...\n");
-  compare_runtime(500, 10, 2);
+  compare_runtime(50, 10, 5);
 }

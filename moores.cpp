@@ -96,9 +96,7 @@ vector<int> meet(vector<int> &r, vector<int> &s){
 }
 
 vector<int> comp_behav_equ(DFA * A){
-  //printf("----------------\n");
   /* initialize E0 */
-  //printf("initializing EO ...");
   int F = *(A->finals.begin());
   int non_F = F == 1? 2 : 1;
   vector<int> E0(A->size);
@@ -107,28 +105,15 @@ vector<int> comp_behav_equ(DFA * A){
     auto found = A->finals.find(i+1);
     E0[i] = (found != A->finals.end()) ? F: non_F;
   }
-  // printf("Done\n");
-  // printf("E0 : ");
-  // print_vector(E0);
   /* compute rho_a rho_b */
   vector<int> E_next = E0;
   do{
     E0 = E_next;
-
-    vector<int> rho_a = compute_rho_f(A->transitions[0], E0);
-    //printf("rho_a: ");
-    //print_vector(rho_a);
-    vector<int> rho_b = compute_rho_f(A->transitions[1], E0);
-    //printf("rho_b: ");
-    //print_vector(rho_b);
-    // int* R_a = meet(rho_a, E0, size);
-    // int* R_b = meet(rho_b, E0, size);
-    vector<int> temp = meet(rho_a, rho_b);
-    E_next = meet(temp, E0);
-    // printf("E_nxt: ");
-    // print_vector(E_next);
+    for(int i =0; i< A->transitions.size();i++){
+      vector<int> rho_a = compute_rho_f(A->transitions[i], E0);
+      E_next = meet(rho_a, E_next);
+    }
   }while(E0 != E_next);
-  //printf("------------------\n");
   return E_next;
 }
 
@@ -139,9 +124,7 @@ DFA* Moores(DFA* A){
   minA->alpha_size = A->alpha_size;
 
   /* computing behavioral equivalence */
-  //printf("Computing behavioral equivalence....\n");
   vector<int> E = comp_behav_equ(A);
-  //printf("Finished computing.\n");
   /* state merging */
   prep_state_merging(E);
   /* new size*/
