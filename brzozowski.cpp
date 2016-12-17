@@ -1,31 +1,102 @@
 #include <set>
+#include <iostream>
+#include <queue>
+#include <tuple>
+#include <algorithm>
+#include <stdio.h>
 
-void print_arr(int* arr, int n){
-  for(int i = 0; i < n;i++){
+#include "finite_machine.hpp"
+
+using namespace std;
+
+/* helper functions */
+void print_vector(vector<int> arr){
+  for(int i = 0; i < arr.size();i++){
     printf("%d ", arr[i]);
   }
   printf("\n");
 }
 
-void print_NFA_transition(NFA_t * A){
-  state_t *** T = A->transitions;
+void print_set(set<int> s){
+  printf("{");
+  for(auto it = s.begin(); it != s.end(); it++) {
+    printf("%d, ", *it);
+  }
+  printf("}\n");
+}
+
+void print_NFA_transition(NFA* A){
+  vector<vector<vector<int> > > T = A->transitions;
   for(int i =0; i < A->alpha_size; i++){
-    printf("----------f%d-------\n", i);
-    state_t** t = T[i];
+    printf("-------------%d---------\n", i);
+    vector<vector<int> > t = T[i];
     for(int j =0; j< A->size; j++){
-      state_t* p = t[j];
+      vector<int> p = t[j];
       printf("state %d : ", j+1);
-      while(p){
-        printf(" %d, ", p->state);
-        p=p->next;
+      for(int k=0; k<p.size(); k++){
+        printf(" %d, ", p[k]);
       }
       printf("\n");
     }
   }
 }
 
-NFA_t *compute_rev(DFA_t *A){
-  NFA_t *revA = malloc(sizeof(NFA_t));
+void print_DFA_transition(DFA* A){
+  vector<vector<int> > T = A->transitions;
+  printf("    ");
+  for(int i = 0; i< A->size; i++){
+    printf("%d ",i+1);
+  }
+  printf("\n----------------------\n");
+  for(int i =0; i < A->alpha_size; i++){
+    printf("%d : ", i);
+    vector<int> t = T[i];
+    for(int j =0; j< A->size; j++){
+      int p = t[j];
+      printf("%d ", p);
+    }
+    printf("\n");
+  }
+}
+
+set<int> compute_tau(set<int> P, vector<vector<int> >f){
+  printf("check f: ");
+  for(int i =0; i < f.size(); i++){
+    printf("state %d : ", i+1);
+    print_vector(f[i]);
+  }
+  printf("\n");
+  set<int> result;
+  for(auto it = P.begin(); it != P.end(); it++){
+    int i = *it;
+    vector<int> image = f[i-1];
+    for(int j =0; j < image.size(); j++){
+      result.insert(image[j]);
+    }
+  }
+  return result;
+}
+
+bool set_intersect_empty(set<int> A, set<int> B){
+  vector<int> intersect;
+  auto it = set_intersection(A.begin(), A.end(), B.begin(),
+                             B.end(), inserter(intersect, intersect.begin()));
+  return (intersect.size() == 0);
+}
+
+int get_set_index(vector<set<int> > QQ, set<int> target){
+  auto found = find(QQ.begin(), QQ.end(), target);
+  return found - QQ.begin() + 1;
+}
+
+bool q_contains(vector<set<int> >QQ, set<int> target){
+  auto found = find(QQ.begin(), QQ.end(), target);
+  return found != QQ.end();
+}
+
+/* main algorithm parts*/
+NFA *compute_rev(DFA* A){
+  NFA* revA = new NFA();
   /* alphabet and dimention do not change */
   revA->size = A->size;
   revA->alpha_size = A->alpha_size;
@@ -33,134 +104,107 @@ NFA_t *compute_rev(DFA_t *A){
   revA->finals = A->inits;
   revA->inits = A->finals;
   /* revert the transition directions */
-  state_t ***trans = malloc(sizeof(state_t **) * revA->alpha_size);
+  vector<vector<vector<int> > > trans(A->alpha_size,vector<vector<int> >());
   for(int i =0; i<A->alpha_size; i++){
-    trans[i] = malloc(sizeof(state_t *) * revA->size);
     /*initialize everythign to be NULL*/
-    memset(trans[i], 0, revA->size * sizeof(state_t *));
-    int* f = A->transitions[i];
-    print_arr(f, 4);
+    trans[i] = vector<vector<int> >(A->size, vector<int>());
+    vector<int> f = A->transitions[i];
     for(int j = 0; j<A->size; j++){
-      //printf("%d ", f[j]);
-      if(f[j]!= -1){
-        state_t * state = malloc(sizeof(state_t));
-        state->state = j+1;
-        /*add it to the front*/
-        state->next = trans[i][f[j]-1];
-        trans[i][f[j]-1] = state;
+        if(f[j]!= -1){
+        trans[i][f[j]-1].push_back(j+1);
       }
     }
   }
   revA->transitions = trans;
   print_NFA_transition(revA);
+  //print_set(revA->set)
+  return revA;
 }
 
-set_t *compute_tau(set_t* P, state_t **f){
-  /* edge case */
-  if(f == NULL) return NULL;
-
-  int temp [1024];
-  int count = 0;
-  for(int i =0; i < P->size; i++){
-    state_t* neibors = f[P->set[i]];
-    while(neibors){
-      temp[count] = neibors->state;
-      neibors = neibors->next;
-      count++;
-    }
-  }
-  int* set = malloc(sizeof(int)*count);
-  memcpy(set, temp, sizeof(int)*count);
-  set_t* result = malloc(sizeof(set_t));
-  result->set = set;
-  result->size = count;
-  return result;
-}
-
-DFA_t *determinize(NFA_t *A){
-  DFA_t *detA = malloc(sizeof(DFA_t));
-  set_t *inits, *finals;
-  hashtable_t trans = ht_create(100); //used to keep track of transitions
+DFA *determinize(NFA *A){
+  DFA *detA = new DFA();
+  vector<tuple<int, int, int> > table; //used to keep track of transitions
   /* sigma doesn't change */
   detA->alpha_size = A->alpha_size;
   /* inits is just {1}*/
-  int* set = malloc(sizeof(int));
-  set[0] = 1;
-  inits = set_init(set);
+  set<int> inits = {1};
   detA->inits = inits;
   /* we will add states into finals later...*/
-  finals = set_init(NULL);
+  set<int> finals = {};
 
   /* get transitions */
-  queue_t *active = init_queue();
-  queue_t *QQ = init_queue();
-  set_t *I = A->inits;
-  enque(active, I);
+  queue<set<int>> active;
+  vector<set<int>> QQ;
+  set<int> I = A->inits;
+  active.push(I);
+  QQ.push_back(I);
   if(!set_intersect_empty(I, A->finals)){
     /* the case where initial states are also final states */
-    set_add(finals, q_get_seq(QQ, I));
+    finals.insert(1);
   }
-  enque(QQ, I);
-  while(!is_empty(active)){
-    set_t *P = deque(active);
+  while(!active.empty()){
+    set<int> P = active.front();
+    active.pop();
     for(int i=0; i<A->alpha_size; i++){
-      state_t** f = A->transitions[i];
-      set_t* R = compute_tau(P, f);
+      vector<vector<int>> f = A->transitions[i];
+      set<int> R = compute_tau(P, f);
       if(!q_contains(QQ, R)){
-        enque(QQ,R);
+        QQ.push_back(R);
+        active.push(R);
         /* add it to our finals if necessary*/
         if(!set_intersect_empty(R, A->finals)){
-          set_add(finals, q_get_seq(QQ, R));
+          finals.insert(get_set_index(QQ, R));
         }
       }
       /* keep track of transition P->R via character i*/
-      ht_set(trans, q_get_seq(QQ,P), q_get_seq(QQ, R), i);
+      table.push_back(tuple<int, int, int>(get_set_index(QQ, P),
+          get_set_index(QQ, R), i+1));
     }
   }
 
   detA->finals = finals; //convert to DFA finals
-
   /* size of the DFA is the size of QQ */
-  detA->size = q_size(QQ);
-  /* translate transitions */
-  int** trans = malloc(sizeof(int *) * detA->alpha_size);
-  for(int i = 0; i < defA->alpha_size; i++){
-    trans[i] = malloc(sizeof(int) * detA->size);
-  }
+  detA->size = QQ.size();
 
-  entry_t* list = ht_convert2list(trans);
-  while(list){
-    trans[list->value][list->key->i] = list->key->j;
+  /* translate transitions */
+  vector<vector<int>> trans(detA->alpha_size, vector<int>(detA->size, 0));
+
+  for(int k =0; k < table.size(); k++){
+    int p = get<0>(table[k]);
+    int q = get<1>(table[k]);
+    int i = get<2>(table[k]);
+    trans[i-1][p-1] = q;
   }
   detA->transitions = trans;
+  print_DFA_transition(detA);
   return detA;
+
 }
 
-DFA_t *brzozowski(DFA_t * A){
+DFA *brzozowski(DFA * A){
   /* compute NFA rev(A)*/
-  NFA_t * rev_A = compute_rev(A);
+  NFA * rev_A = compute_rev(A);
 
   /* Rabin-Scott Determinization */
-  DFA_t * det_RV = determinize(rev_A);
+  DFA * det_RV = determinize(rev_A);
+
+  /* twice in a row*/
+  DFA* result = determinize(compute_rev(det_RV));
+  return result;
 }
-
-
-
-
 
 
 
 int main(){
-  DFA_t * A = malloc(sizeof(DFA_t *));
-  int temp[2][4] ={{2,3,4,4},{2,3,-1,4}};
-  int** transitions = malloc(sizeof(int *)*2);
-  for(int i = 0; i< 2; i++){
-    transitions[i] = malloc(sizeof(int) *4);
-    memcpy(transitions[i], temp[i], sizeof(int)*4);
-  }
-  printf("%d\n", transitions[0][0]);
+  DFA* A = new DFA();
+  vector<vector<int> > trans = {{2,3,4,4},{2,3,-1,4}};
   A->alpha_size = 2;
   A->size = 4;
-  A->transitions = transitions;
-  NFA_t* revA = compute_rev(A);
+  A->transitions = trans;
+  set<int> inits = {1};
+  A->inits = inits;
+  set<int> finals = {4};
+  A->finals = finals;
+  DFA* detA = brzozowski(A);
+  print_set(detA->finals);
 }
