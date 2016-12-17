@@ -1,5 +1,5 @@
-meet: hash.c hash.h meet.c
-	@gcc meet.c hash.c hash.h -o meet
+meet: main.cpp moores.cpp brzozowski.cpp
+	@g++ -std=c++11 main.cpp moores.cpp brzozowski.cpp -o main
 
 clean:
-	@rm meet
+	@rm main

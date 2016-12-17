@@ -1,3 +1,6 @@
+#ifndef FINITE_MACHINE_HPP
+#define FINITE_MACHINE_HPP
+
 #include <set>
 #include <vector>
 
@@ -24,3 +27,5 @@ struct NFA{
   set<int> inits;
   set<int> finals;
 };
+
+#endif

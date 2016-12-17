@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unordered_map>
+
 #include "finite_machine.hpp"
+#include "minimization.hpp"
+#include "util.hpp"
 
 vector<set<int>> raw;
 unordered_map<int, set<int>> int2set;
@@ -17,38 +20,7 @@ public:
   }
 };
 
-
-
-void print_vector(vector<int> arr){
-  for(int i = 0; i < arr.size();i++){
-    printf("%d ", arr[i]);
-  }
-  printf("\n");
-}
-void print_set(set<int> s){
-  printf("{");
-  for(auto it = s.begin(); it != s.end(); it++) {
-    printf("%d, ", *it);
-  }
-  printf("}\n");
-}
-void print_DFA_transition(DFA* A){
-  vector<vector<int> > T = A->transitions;
-  printf("    ");
-  for(int i = 0; i< A->size; i++){
-    printf("%d ",i+1);
-  }
-  printf("\n----------------------\n");
-  for(int i =0; i < A->alpha_size; i++){
-    printf("%d : ", i);
-    vector<int> t = T[i];
-    for(int j =0; j< A->size; j++){
-      int p = t[j];
-      printf("%d ", p);
-    }
-    printf("\n");
-  }
-}
+/* until functions */
 unordered_map<int, set<int>> init_int2set(vector<int> E){
   vector<set<int>> temp (E.size(), set<int>());
   for(int i =0; i<E.size(); i++){
@@ -67,9 +39,6 @@ unordered_map<int, set<int>> init_int2set(vector<int> E){
   return int2set;
 }
 
-
-
-/* until functions */
 void prep_state_merging(vector<int> E){
   int2set = init_int2set(E);
   map = vector<set<int>> (E.size());
@@ -127,9 +96,9 @@ vector<int> meet(vector<int> r, vector<int> s){
 }
 
 vector<int> comp_behav_equ(DFA * A){
-  printf("----------------\n");
+  //printf("----------------\n");
   /* initialize E0 */
-  printf("initializing EO ...");
+  //printf("initializing EO ...");
   int F = *(A->finals.begin());
   int non_F = F == 1? 2 : 1;
   vector<int> E0(A->size);
@@ -138,31 +107,30 @@ vector<int> comp_behav_equ(DFA * A){
     auto found = A->finals.find(i+1);
     E0[i] = (found != A->finals.end()) ? F: non_F;
   }
-  printf("Done\n");
-  printf("E0 : ");
-  print_vector(E0);
+  // printf("Done\n");
+  // printf("E0 : ");
+  // print_vector(E0);
   /* compute rho_a rho_b */
   vector<int> E_next = E0;
   do{
     E0 = E_next;
 
     vector<int> rho_a = compute_rho_f(A->transitions[0], E0);
-    printf("rho_a: ");
-    print_vector(rho_a);
+    //printf("rho_a: ");
+    //print_vector(rho_a);
     vector<int> rho_b = compute_rho_f(A->transitions[1], E0);
-    printf("rho_b: ");
-    print_vector(rho_b);
+    //printf("rho_b: ");
+    //print_vector(rho_b);
     // int* R_a = meet(rho_a, E0, size);
     // int* R_b = meet(rho_b, E0, size);
     vector<int> temp = meet(rho_a, rho_b);
     E_next = meet(temp, E0);
-    printf("E_nxt: ");
-    print_vector(E_next);
+    // printf("E_nxt: ");
+    // print_vector(E_next);
   }while(E0 != E_next);
-  printf("------------------\n");
+  //printf("------------------\n");
   return E_next;
 }
-
 
 DFA* Moores(DFA* A){
   DFA* minA = new DFA();
@@ -171,9 +139,9 @@ DFA* Moores(DFA* A){
   minA->alpha_size = A->alpha_size;
 
   /* computing behavioral equivalence */
-  printf("Computing behavioral equivalence....\n");
+  //printf("Computing behavioral equivalence....\n");
   vector<int> E = comp_behav_equ(A);
-  printf("Finished computing.\n");
+  //printf("Finished computing.\n");
   /* state merging */
   prep_state_merging(E);
   /* new size*/
@@ -209,36 +177,4 @@ DFA* Moores(DFA* A){
   }
   minA->transitions = trans;
   return minA;
-}
-
-int main(){
-  // int r[6] = {1,1,1,1,1,1};
-  // int s[6] = {3,3,1,1,1,1};
-  // int e[6] = {3,4,1,2,4,5};
-  // int* t1 = meet(e, e, 6);
-  // print_arr(t1, 6);
-  // int* t2  = meet(s, e, 6);
-  // print_arr(t2, 6);
-  // int* t  = meet(t1, t2, 6);
-  // print_arr(t, 6);
-  //
-  // int matrix[2][8] = {{2,4,5,2,6,8,4,6}, {3,5,4,3,7,4,8,7}};
-  // int finals[] = {1,4};
-  // int* answer = Moores(8, matrix, finals, 2);
-  // printf("answer:\n");
-  // print_arr(answer, 8);
-  // /* Need to free things*/
-
-  DFA* A = new DFA();
-  vector<vector<int> > trans = {{2,3,4,4},{2,3,-1,4}};
-  A->alpha_size = 2;
-  A->size = 4;
-  A->transitions = trans;
-  set<int> inits = {1};
-  A->inits = inits;
-  set<int> finals = {4};
-  A->finals = finals;
-  DFA* minA = Moores(A);
-  print_DFA_transition(minA);
-  print_set(minA->finals);
 }
