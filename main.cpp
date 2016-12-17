@@ -34,18 +34,29 @@ DFA* generate_random_DFA(int size, int alpha_size){
   return A;
 }
 
-void compare_runtime(DFA* A){
-  high_resolution_clock::time_point t1, t2;
-  t1 = high_resolution_clock::now();
-  Moores(A);
-  t2 = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>( t2 - t1 ).count();
-  printf("Moores Run Time: %ld\n", duration);
-  t1 = high_resolution_clock::now();
-  Brzozowski(A);
-  t2 = high_resolution_clock::now();
-  duration = duration_cast<microseconds>( t2 - t1 ).count();
-  printf("Brzozowski Run Time: %ld\n", duration);
+void compare_runtime(int runs, int size, int alpha_size){
+  int n = runs;
+  int i = 0;
+  int m_sum = 0;
+  int b_sum = 0;
+  while(i < n){
+    DFA* A = generate_random_DFA(size, alpha_size);
+    high_resolution_clock::time_point t1, t2;
+    t1 = high_resolution_clock::now();
+    Moores(A);
+    t2 = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+    m_sum += duration;
+
+    t1 = high_resolution_clock::now();
+    Brzozowski(A);
+    t2 = high_resolution_clock::now();
+    duration = duration_cast<microseconds>( t2 - t1 ).count();
+    b_sum += duration;
+    i++;
+  }
+  printf("Moores AVG Run Time: %d\n", m_sum/runs);
+  printf("Brzozowski  AVG Run Time: %d\n", b_sum/runs);
 }
 
 int main(){
@@ -66,20 +77,25 @@ int main(){
   t2 = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>( t2 - t1 ).count();
   printf("Moores Run Time: %ld\n", duration);
+  printf("Output: \n");
+  print_DFA_transition(Am);
+  printf("Final states: ");
+  print_set(Am->finals);
+  printf("=========================\n");
+
 
   t1 = high_resolution_clock::now();
   DFA* Ab = Brzozowski(A);
   t2 = high_resolution_clock::now();
   duration = duration_cast<microseconds>( t2 - t1 ).count();
   printf("Brzozowski Run Time: %ld\n", duration);
-
-  /**/
-  print_DFA_transition(Am);
-  print_set(Am->finals);
-
+  printf("Output: \n");
   print_DFA_transition(Ab);
+  printf("Final states: ");
   print_set(Ab->finals);
+  printf("==========================\n");
+
   /* Experiments */
   printf("Experiments with lots of input ...\n");
-  compare_runtime(generate_random_DFA(20,2));
+  compare_runtime(500, 10, 2);
 }
