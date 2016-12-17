@@ -21,7 +21,7 @@ public:
 };
 
 /* until functions */
-unordered_map<int, set<int>> init_int2set(vector<int> E){
+unordered_map<int, set<int>> init_int2set(vector<int> &E){
   vector<set<int>> temp (E.size(), set<int>());
   for(int i =0; i<E.size(); i++){
     int val = E[i];
@@ -39,7 +39,7 @@ unordered_map<int, set<int>> init_int2set(vector<int> E){
   return int2set;
 }
 
-void prep_state_merging(vector<int> E){
+void prep_state_merging(vector<int> &E){
   int2set = init_int2set(E);
   map = vector<set<int>> (E.size());
   for(int i =0; i<map.size(); i++){
@@ -67,7 +67,7 @@ set<int> get_equi_class_represented(int n_state){
 
 
 /* main algorithm */
-vector<int> compute_rho_f(vector<int> f, vector<int> rho){
+vector<int> compute_rho_f(vector<int> &f, vector<int> &rho){
   vector<int> result(f.size());
   for(int i =0;i <f.size();i++){
     result[i] = rho[f[i]-1];
@@ -75,7 +75,7 @@ vector<int> compute_rho_f(vector<int> f, vector<int> rho){
   return result;
 }
 
-vector<int> meet(vector<int> r, vector<int> s){
+vector<int> meet(vector<int> &r, vector<int> &s){
   unordered_map<pair<int,int>, int, pairhash> table;
   int p, i ,j;
 

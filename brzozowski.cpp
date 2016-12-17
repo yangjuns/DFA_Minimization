@@ -10,7 +10,7 @@
 #include "util.hpp"
 using namespace std;
 
-set<int> compute_tau(set<int> P, vector<vector<int> >f){
+set<int> compute_tau(set<int> &P, vector<vector<int> > &f){
   //printf("check f: ");
   // for(int i =0; i < f.size(); i++){
   //   printf("state %d : ", i+1);
@@ -28,19 +28,19 @@ set<int> compute_tau(set<int> P, vector<vector<int> >f){
   return result;
 }
 
-bool set_intersect_empty(set<int> A, set<int> B){
+bool set_intersect_empty(set<int> &A, set<int> &B){
   vector<int> intersect;
   auto it = set_intersection(A.begin(), A.end(), B.begin(),
                              B.end(), inserter(intersect, intersect.begin()));
   return (intersect.size() == 0);
 }
 
-int get_set_index(vector<set<int> > QQ, set<int> target){
+int get_set_index(vector<set<int> > &QQ, set<int> &target){
   auto found = find(QQ.begin(), QQ.end(), target);
   return found - QQ.begin() + 1;
 }
 
-bool q_contains(vector<set<int> >QQ, set<int> target){
+bool q_contains(vector<set<int> > &QQ, set<int> &target){
   auto found = find(QQ.begin(), QQ.end(), target);
   return found != QQ.end();
 }
