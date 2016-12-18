@@ -12,8 +12,8 @@ struct DFA{
   int size;
   /* an alpha_size by size matrix */
   vector<vector<int>> transitions;
-  set<int> inits;
-  set<int> finals;
+  vector<int> inits; /*bit vector of length size. ints[i] = 1 means state i+1 is inital state*/
+  vector<int> finals;
 };
 
 
@@ -24,8 +24,8 @@ struct NFA{
   int size;
   int alpha_size;
   vector<vector<vector<int>>> transitions;
-  set<int> inits;
-  set<int> finals;
+  vector<int> inits;
+  vector<int> finals;
 };
 
 #endif

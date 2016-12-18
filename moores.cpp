@@ -7,9 +7,9 @@
 #include "minimization.hpp"
 #include "util.hpp"
 
-vector<set<int>> raw;
-unordered_map<int, set<int>> int2set;
-vector<set<int>> map;
+vector<vector<int>> raw;
+unordered_map<int, vector<int>> int2set;
+vector<vector<int>> map;
 
 struct pairhash {
 public:
@@ -21,18 +21,26 @@ public:
 };
 
 /* until functions */
-unordered_map<int, set<int>> init_int2set(vector<int> &E){
-  vector<set<int>> temp (E.size(), set<int>());
+int sum_vector(vector<int> arr){
+  int sum = 0;
+  for(int i=0;i<arr.size(); i++){
+    sum+= arr[i];
+  }
+  return sum;
+}
+
+unordered_map<int, vector<int>> init_int2set(vector<int> &E){
+  vector<vector<int>> temp (E.size(), vector<int>(E.size(), 0));
   for(int i =0; i<E.size(); i++){
     int val = E[i];
-    temp[val-1].insert(i+1);
+    temp[val-1][i] = 1;
   }
   raw = temp;
-  unordered_map<int, set<int>> int2set;
+  unordered_map<int, vector<int>> int2set;
   int state = 1;
   for(int i =0; i< temp.size(); i++){
-    if(temp[i].size() != 0){
-      int2set.insert(pair<int, set<int>>(state, temp[i]));
+    if(sum_vector(temp[i]) != 0){
+      int2set.insert(pair<int, vector<int>>(state, temp[i]));
       state++;
     }
   }
@@ -41,17 +49,17 @@ unordered_map<int, set<int>> init_int2set(vector<int> &E){
 
 void prep_state_merging(vector<int> &E){
   int2set = init_int2set(E);
-  map = vector<set<int>> (E.size());
+  map = vector<vector<int>> (E.size());
   for(int i =0; i<map.size(); i++){
     map[i] = raw[E[i]-1];
   }
 }
 
-set<int> get_equi_class(int state){
+vector<int> get_equi_class(int state){
   return map[state-1];
 }
 
-int get_isom_state(set<int> equi){
+int get_isom_state(vector<int> equi){
   for(auto it = int2set.begin(); it !=int2set.end(); it++){
     if(it->second == equi){
       return it->first;
@@ -60,7 +68,7 @@ int get_isom_state(set<int> equi){
   return -1;
 }
 
-set<int> get_equi_class_represented(int n_state){
+vector<int> get_equi_class_represented(int n_state){
   auto found = int2set.find(n_state);
   return found->second;
 }
@@ -97,13 +105,18 @@ vector<int> meet(vector<int> &r, vector<int> &s){
 
 vector<int> comp_behav_equ(DFA * A){
   /* initialize E0 */
-  int F = *(A->finals.begin());
+  int F;
+  for(int i =0; i< A->finals.size();i++){
+    if(A->finals[i] == 1){
+      F = i+1;
+      break;
+    }
+  }
   int non_F = F == 1? 2 : 1;
   vector<int> E0(A->size);
   for(int i =0; i< A->size; i++){
     /*check if it is a final state*/
-    auto found = A->finals.find(i+1);
-    E0[i] = (found != A->finals.end()) ? F: non_F;
+    E0[i] = A->finals[i] == 1? F : non_F;
   }
   /* compute rho_a rho_b */
   vector<int> E_next = E0;
@@ -125,23 +138,43 @@ DFA* Moores(DFA* A){
 
   /* computing behavioral equivalence */
   vector<int> E = comp_behav_equ(A);
+  // printf("E0 : ");
+  // print_vector(E);
   /* state merging */
   prep_state_merging(E);
+  // printf("seee------------------\n");
+  // for(auto it = int2set.begin(); it !=int2set.end(); it++){
+  //   printf("%d: ", it->first);
+  //   print_vector(it->second);
+  // }
+
   /* new size*/
   minA->size = int2set.size();
-
   /* new initials*/
-  int ini = *(A->inits.begin());
+  int ini;
+  for(int i =0; i<A->inits.size(); i++){
+    if(A->inits[i] == 1){
+      ini = i+1;
+      break;
+    }
+  }
   int new_ini = get_isom_state(get_equi_class(ini));
-  minA->inits = {new_ini};
+  vector<int> new_ini_set(minA->size, 0);
+  new_ini_set[new_ini-1] = 1;
+  // printf("new_inits: ");
+  // print_vector(new_ini_set);
+  minA->inits = new_ini_set;
 
   /* new finals */
-  set<int> finals ={};
-  for(auto it = A->finals.begin(); it != A->finals.end();it++) {
-    int i = *it;
-    int f_state = get_isom_state(get_equi_class(i));
-    finals.insert(f_state);
+  vector<int> finals(minA->size, 0);
+  for(int i =0; i< A->finals.size(); i++) {
+    if(A->finals[i] == 1){
+      int f_state = get_isom_state(get_equi_class(i+1));
+      finals[f_state-1] = 1;
+    }
   }
+  // printf("new_final_inits: ");
+  // print_vector(finals);
   minA->finals = finals;
 
   /* new trnsitions */
@@ -150,10 +183,16 @@ DFA* Moores(DFA* A){
     trans[i] = vector<int> (minA->size);
     vector<int> origin = A->transitions[i];
     for(int j =0; j <trans[i].size(); j++){
-      set<int> equi_class = get_equi_class_represented(j+1);
-      int state = *(equi_class.begin());
+      vector<int> equi_class = get_equi_class_represented(j+1);
+      int state;
+      for(int k =0; k< equi_class.size(); k++){
+        if(equi_class[k]==1){
+          state = k+1;
+          break;
+        }
+      }
       int next_state = origin[state-1];
-      set<int> next_equi_class = get_equi_class(next_state);
+      vector<int> next_equi_class = get_equi_class(next_state);
       int next_isom_state = get_isom_state(next_equi_class);
       trans[i][j] = next_isom_state;
     }

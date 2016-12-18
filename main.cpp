@@ -12,14 +12,13 @@ DFA* generate_random_DFA(int size, int alpha_size){
   DFA* A = new DFA();
   A->size = size;
   A->alpha_size = alpha_size;
-  A->inits = {1};
+  vector<int> inits(size, 0);
+  inits[0] = 1;
+  A->inits = inits;
   /*generate random final sets*/
-  set<int> finals = {};
-  int n = rand() % A->size + 1;
-  int i = 0;
-  while(i < n){
-    finals.insert(rand() % A->size +1);
-    i++;
+  vector<int> finals(size);
+  for(int i =0; i<size; i++){
+    finals[0] = rand() % 2;
   }
   A->finals = finals;
   /* generate random transitions */
@@ -33,12 +32,10 @@ DFA* generate_random_DFA(int size, int alpha_size){
   A->transitions = trans;
   return A;
 }
-
-void compare_runtime(int runs, int size, int alpha_size){
+void run_moore(int runs, int size, int alpha_size){
   int n = runs;
   int i = 0;
   int m_sum = 0;
-  int b_sum = 0;
   while(i < n){
     DFA* A = generate_random_DFA(size, alpha_size);
     high_resolution_clock::time_point t1, t2;
@@ -47,17 +44,32 @@ void compare_runtime(int runs, int size, int alpha_size){
     t2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>( t2 - t1 ).count();
     m_sum += duration;
-
-    t1 = high_resolution_clock::now();
-    Brzozowski(A);
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>( t2 - t1 ).count();
-    b_sum += duration;
     i++;
   }
   printf("Moores AVG Run Time: %d\n", m_sum/runs);
+}
+void run_brzozowski(int runs, int size, int alpha_size){
+  int n = runs;
+  int i = 0;
+  int b_sum = 0;
+  while(i < n){
+    DFA* A = generate_random_DFA(size, alpha_size);
+    high_resolution_clock::time_point t1, t2;
+    t1 = high_resolution_clock::now();
+    Brzozowski(A);
+    t2 = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+    b_sum += duration;
+    i++;
+  }
   printf("Brzozowski AVG Run Time: %d\n", b_sum/runs);
 }
+void compare_runtime(int runs, int size, int alpha_size){
+  run_moore(runs, size, alpha_size);
+  run_brzozowski(runs, size, alpha_size);
+}
+
+
 
 int main(){
   /* Examples (Sanity check) from Lecture Minimization P.27*/
@@ -68,10 +80,14 @@ int main(){
   A->alpha_size = 2;
   A->size = 6;
   A->transitions = trans;
-  set<int> inits = {1};
+  vector<int> inits = {1,0,0,0,0,0};
   A->inits = inits;
-  set<int> finals = {3,4};
+  vector<int> finals = {0,0,1,1,0,0};
   A->finals = finals;
+  print_DFA_transition(A);
+  printf("FS: ");
+  print_vector(A->finals);
+  printf("=========================\n");
   t1 = high_resolution_clock::now();
   DFA* Am = Moores(A);
   t2 = high_resolution_clock::now();
@@ -80,9 +96,8 @@ int main(){
   printf("Output: \n");
   print_DFA_transition(Am);
   printf("Final states: ");
-  print_set(Am->finals);
+  print_vector(Am->finals);
   printf("=========================\n");
-
 
   t1 = high_resolution_clock::now();
   DFA* Ab = Brzozowski(A);
@@ -92,10 +107,24 @@ int main(){
   printf("Output: \n");
   print_DFA_transition(Ab);
   printf("Final states: ");
-  print_set(Ab->finals);
+  print_vector(Ab->finals);
   printf("==========================\n");
 
   /* Experiments */
   printf("Experiments with lots of input ...\n");
-  compare_runtime(50, 10, 5);
+  /*Moore's Algorithm */
+  printf("==========================\n");
+  printf("Moore's Algorithm runtime Experiments: \n");
+  run_moore(10, 50, 2);
+  run_moore(10, 500, 2);
+  run_moore(10, 50, 20);
+  printf("==========================\n");
+  printf("Brzozowski's Algorithm runtime Experiments: \n");
+  run_brzozowski(2, 20, 2);
+  printf("It grows from exponentially so I skipped it \n");
+  printf("==========================\n");
+  printf("Compareing both algorithms:\n");
+  compare_runtime(10, 10, 2);
+  compare_runtime(10, 20, 2);
+  compare_runtime(10, 10, 20);
 }

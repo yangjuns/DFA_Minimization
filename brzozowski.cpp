@@ -13,43 +13,46 @@ using namespace std;
 
 struct sethash {
 public:
-  size_t operator()(const set<int> &x) const
+  size_t operator()(const vector<int> &x) const
   {
     if(x.size()>0){
-      return x.size() * (*(x.begin()) + *(x.end()));
+      return x.size() * (x[0] + x.back());
     }else{
       return 0;
     }
   }
 };
 
-unordered_map<set<int>, int, sethash> set2int;
+unordered_map<vector<int>, int, sethash> set2int;
 
-set<int> compute_tau(set<int> &P, vector<vector<int> > &f){
-  set<int> result;
-  for(auto it = P.begin(); it != P.end(); it++){
-    int i = *it;
-    vector<int> image = f[i-1];
-    for(int j =0; j < image.size(); j++){
-      result.insert(image[j]);
+vector<int> compute_tau(vector<int> &P, vector<vector<int> > &f){
+  vector<int> result(P.size(), 0);
+  for(int i=0 ;i<P.size(); i++){
+    if(P[i] == 1){
+      // printf("f[%d] : ", i);
+      // print_vector(f[i]);
+      for(int j=0; j<result.size(); j++){
+        result[j] = result[j] | f[i][j];
+      }
     }
   }
   return result;
 }
 
-bool set_intersect_empty(set<int> &A, set<int> &B){
-  vector<int> intersect;
-  auto it = set_intersection(A.begin(), A.end(), B.begin(),
-                             B.end(), inserter(intersect, intersect.begin()));
-  return (intersect.size() == 0);
+bool set_intersect_empty(vector<int> &A, vector<int> &B){
+  vector<int> intersect (A.size(), 0);
+  for(int i = 0;i <A.size();i++){
+    if(A[i] & B[i] == 1) return true;
+  }
+  return false;
 }
 
-bool q_contains(vector<set<int>> &QQ, set<int> &target){
+bool q_contains(vector<vector<int>> &QQ, vector<int> &target){
   auto found = find(QQ.begin(), QQ.end(), target);
   return found != QQ.end();
 }
 
-int get_set_state(set<int> &s){
+int get_set_state(vector<int> &s){
   auto found = set2int.find(s);
   return found->second;
 }
@@ -64,14 +67,14 @@ NFA *compute_rev(DFA* A){
   revA->finals = A->inits;
   revA->inits = A->finals;
   /* revert the transition directions */
-  vector<vector<vector<int> > > trans(A->alpha_size,vector<vector<int> >());
+  vector<vector<vector<int>>> trans(A->alpha_size,vector<vector<int>>());
   for(int i =0; i<A->alpha_size; i++){
     /*initialize everythign to be NULL*/
-    trans[i] = vector<vector<int> >(A->size, vector<int>());
+    trans[i] = vector<vector<int>> (A->size, vector<int>(A->size, 0));
     vector<int> f = A->transitions[i];
     for(int j = 0; j<A->size; j++){
-        if(f[j]!= -1){
-        trans[i][f[j]-1].push_back(j+1);
+      if(f[j]!= -1){
+        trans[i][f[j]-1][j] = 1;
       }
     }
   }
@@ -81,42 +84,42 @@ NFA *compute_rev(DFA* A){
 
 DFA *determinize(NFA *A){
   DFA *detA = new DFA();
-  vector<tuple<int, int, int> > table; //used to keep track of transitions
+  vector<tuple<int, int, int>> table; //used to keep track of transitions
   /* sigma doesn't change */
   detA->alpha_size = A->alpha_size;
-  /* inits is just {1}*/
-  set<int> inits = {1};
-  detA->inits = inits;
-  /* we will add states into finals later...*/
-  set<int> finals = {};
-
   /* get transitions */
   int count = 1;
-  queue<set<int>> active;
-  vector<set<int>> QQ;
-  set<int> I = A->inits;
+  queue<vector<int>> active;
+  vector<vector<int>> QQ;
+  vector<int> F; //used later to construct finals
+  /* inits is just {1}*/
+  vector<int> I = A->inits;
   active.push(I);
   QQ.push_back(I);
-  set2int.insert(pair<set<int>,int>(I, count));
+  set2int.insert(pair<vector<int>,int>(I, count));
   count++;
   if(!set_intersect_empty(I, A->finals)){
     /* the case where initial states are also final states */
-    finals.insert(1);
+    F.push_back(1);
   }
   while(!active.empty()){
-    set<int> P = active.front();
+    vector<int> P = active.front();
+    // printf("P: ");
+    // print_vector(P);
     active.pop();
     for(int i=0; i<A->alpha_size; i++){
       vector<vector<int>> f = A->transitions[i];
-      set<int> R = compute_tau(P, f);
+      vector<int> R = compute_tau(P, f);
+      // printf("R: ");
+      // print_vector(R);
       if(!q_contains(QQ, R)){
         QQ.push_back(R);
-        set2int.insert(pair<set<int>,int>(R, count));
+        set2int.insert(pair<vector<int>,int>(R, count));
         count++;
         active.push(R);
         /* add it to our finals if necessary*/
         if(!set_intersect_empty(R, A->finals)){
-          finals.insert(get_set_state(R));
+          F.push_back(get_set_state(R));
         }
       }
       /* keep track of transition P->R via character i*/
@@ -125,10 +128,18 @@ DFA *determinize(NFA *A){
     }
   }
 
-  detA->finals = finals; //convert to DFA finals
   /* size of the DFA is the size of QQ */
   detA->size = QQ.size();
-
+  /* initils is just {1} */
+  vector<int> inits(detA->size, 0);
+  inits[0]=1;
+  detA->inits = inits;
+  /* construct finals bit vector*/
+  vector<int> finals(detA->size, 0);
+  for(int i =0; i<F.size(); i++){
+    finals[F[i]-1] = 1;
+  }
+  detA->finals = finals;
   /* translate transitions */
   vector<vector<int>> trans(detA->alpha_size, vector<int>(detA->size, 0));
   for(int k =0; k < table.size(); k++){
@@ -145,13 +156,19 @@ DFA *Brzozowski(DFA * A){
   set2int.clear();
   /* compute NFA rev(A)*/
   NFA * rev_A = compute_rev(A);
-
+  // print_NFA_transition(rev_A);
+  // printf("FInals states: ");
+  // print_vector(rev_A->finals);
   /* Rabin-Scott Determinization */
   DFA * det_RV = determinize(rev_A);
-  set2int.clear();
+  // print_DFA_transition(det_RV);
+  // printf("FInals states: ");
+  // print_vector(det_RV->finals);
 
+  set2int.clear();
   /* twice in a row*/
   NFA * rev_A2 = compute_rev(det_RV);
+  //print_NFA_transition(rev_A2);
   DFA* result = determinize(rev_A2);
   return result;
 }
