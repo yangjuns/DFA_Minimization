@@ -8,6 +8,7 @@ using namespace std::chrono;
 #include "minimization.hpp"
 #include "util.cpp"
 
+/* Used to generate random DFA of certain complexity*/
 DFA* generate_random_DFA(int size, int alpha_size){
   DFA* A = new DFA();
   A->size = size;
@@ -32,6 +33,13 @@ DFA* generate_random_DFA(int size, int alpha_size){
   A->transitions = trans;
   return A;
 }
+
+/* Print average runtime of Moore's algorithm over @runs runs of random DFAs
+ * of certain size
+ * @param runs        how many random DFAs to minimize
+ * @param size        the number of states of these DFAs
+ * @param alpha_size  the size of the alphabet
+ **/
 void run_moore(int runs, int size, int alpha_size){
   int n = runs;
   int i = 0;
@@ -48,6 +56,13 @@ void run_moore(int runs, int size, int alpha_size){
   }
   printf("Moores AVG Run Time: %d\n", m_sum/runs);
 }
+
+/* Print average runtime of Brzozowski's algorithm over @runs runs of random DFAs
+ * of certain size
+ * @param runs        how many random DFAs to minimize
+ * @param size        the number of states of these DFAs
+ * @param alpha_size  the size of the alphabet
+ **/
 void run_brzozowski(int runs, int size, int alpha_size){
   int n = runs;
   int i = 0;
@@ -64,6 +79,14 @@ void run_brzozowski(int runs, int size, int alpha_size){
   }
   printf("Brzozowski AVG Run Time: %d\n", b_sum/runs);
 }
+
+
+/* Print average runtime of both algorithms over @runs runs of random DFAs
+ * of certain size
+ * @param runs        how many random DFAs to minimize
+ * @param size        the number of states of these DFAs
+ * @param alpha_size  the size of the alphabet
+ **/
 void compare_runtime(int runs, int size, int alpha_size){
   run_moore(runs, size, alpha_size);
   run_brzozowski(runs, size, alpha_size);

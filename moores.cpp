@@ -11,6 +11,8 @@ vector<vector<int>> raw;
 unordered_map<int, vector<int>> int2set;
 vector<vector<int>> map;
 
+
+/******************  helper functions *****************/
 struct pairhash {
 public:
   template <typename T, typename U>
@@ -20,7 +22,6 @@ public:
   }
 };
 
-/* until functions */
 int sum_vector(vector<int> arr){
   int sum = 0;
   for(int i=0;i<arr.size(); i++){
@@ -72,9 +73,9 @@ vector<int> get_equi_class_represented(int n_state){
   auto found = int2set.find(n_state);
   return found->second;
 }
+/******* END of helper functions *****/
 
-
-/* main algorithm */
+/****************** main algorithms *****************/
 vector<int> compute_rho_f(vector<int> &f, vector<int> &rho){
   vector<int> result(f.size());
   for(int i =0;i <f.size();i++){
@@ -83,6 +84,7 @@ vector<int> compute_rho_f(vector<int> &f, vector<int> &rho){
   return result;
 }
 
+/* compute the meet of two relations */
 vector<int> meet(vector<int> &r, vector<int> &s){
   unordered_map<pair<int,int>, int, pairhash> table;
   int p, i ,j;
@@ -138,15 +140,8 @@ DFA* Moores(DFA* A){
 
   /* computing behavioral equivalence */
   vector<int> E = comp_behav_equ(A);
-  // printf("E0 : ");
-  // print_vector(E);
   /* state merging */
   prep_state_merging(E);
-  // printf("seee------------------\n");
-  // for(auto it = int2set.begin(); it !=int2set.end(); it++){
-  //   printf("%d: ", it->first);
-  //   print_vector(it->second);
-  // }
 
   /* new size*/
   minA->size = int2set.size();
@@ -161,8 +156,6 @@ DFA* Moores(DFA* A){
   int new_ini = get_isom_state(get_equi_class(ini));
   vector<int> new_ini_set(minA->size, 0);
   new_ini_set[new_ini-1] = 1;
-  // printf("new_inits: ");
-  // print_vector(new_ini_set);
   minA->inits = new_ini_set;
 
   /* new finals */
@@ -173,8 +166,6 @@ DFA* Moores(DFA* A){
       finals[f_state-1] = 1;
     }
   }
-  // printf("new_final_inits: ");
-  // print_vector(finals);
   minA->finals = finals;
 
   /* new trnsitions */
